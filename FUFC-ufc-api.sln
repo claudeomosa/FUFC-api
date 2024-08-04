@@ -1,14 +1,16 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FUFC.Scrapers", "FUFC.Scrapers\FUFC.Scrapers.csproj", "{1994D1B3-D905-4F4C-91B2-A641E6E2BE3F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{12E5291F-457E-4B41-BC60-9FB8B480C27A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{12E5291F-457E-4B41-BC60-9FB8B480C27A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{12E5291F-457E-4B41-BC60-9FB8B480C27A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{12E5291F-457E-4B41-BC60-9FB8B480C27A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1994D1B3-D905-4F4C-91B2-A641E6E2BE3F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1994D1B3-D905-4F4C-91B2-A641E6E2BE3F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1994D1B3-D905-4F4C-91B2-A641E6E2BE3F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1994D1B3-D905-4F4C-91B2-A641E6E2BE3F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
