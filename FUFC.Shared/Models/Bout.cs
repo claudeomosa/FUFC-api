@@ -1,32 +1,40 @@
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace FUFC.Shared.Models;
 
-public class Bout(Event boutEvent)
+public class Bout
 {
-    public Ulid Id { get; set; }
-    
-    public Fighter RedCorner { get; set; } = new Fighter(new WeightClass());
-    
-    public Fighter BlueCorner { get; set; } = new Fighter(new WeightClass());
+    [Key]
+    public int Id { get; init; }
 
-    public bool IsForTitle { get; set; }
+    public Event Event { get; init; } = new Event();
     
-    public bool IsMainEvent  { get; set; }
+    public Fighter RedCorner { get; init; } = new Fighter();
     
-    public Referee Referee { get; set; } = new Referee();
+    public Fighter BlueCorner { get; init; } = new Fighter();
+
+    public bool IsForTitle { get; init; }
+    
+    public bool IsMainEvent  { get; init; }
+    
+    public bool IsPrelim { get; init; }
+    
+    public bool IsInMainCard { get; init; }
+    
+    public Referee Referee { get; init; } = new Referee();
 
     [Column(TypeName = "jsonb")]
-    public BoutResult? Result { get; init; } = boutEvent.Date > DateTime.UtcNow ? null : new BoutResult();
+    public BoutResult? Result { get; init; }
 }
 
 public class BoutResult
 {
-    [JsonPropertyName("winner")] public string Winner { get; set; } = string.Empty;
+    [JsonPropertyName("winner")] public string Winner { get; init; } = string.Empty;
 
-    [JsonPropertyName("round")] public int Round { get; set; }
+    [JsonPropertyName("round")] public int Round { get; init; }
     
-    [JsonPropertyName("method")] public string Method { get; set; } = string.Empty;
+    [JsonPropertyName("method")] public string Method { get; init; } = string.Empty;
 
 }

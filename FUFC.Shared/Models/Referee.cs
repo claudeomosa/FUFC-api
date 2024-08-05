@@ -1,8 +1,11 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace FUFC.Shared.Models;
 
 public class Referee
 {
-    public Ulid Id { get; set; }
+    [Key]
+    public int Id { get; init; }
 
-    public string Name { get; set; } = string.Empty;
+    public string Name { get; init; } = string.Empty;
 }

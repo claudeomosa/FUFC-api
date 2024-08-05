@@ -1,16 +1,24 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace FUFC.Shared.Models;
 
 public class Gym
 {
-    public Ulid Id { get; set; }
+    [Key]
+    public int Id { get; init; }
 
-    public string Name { get; set; } = string.Empty;
+    [MaxLength(50)]
+    public string Name { get; init; } = string.Empty;
 
-    public string Location { get; set; } = string.Empty;
+    [MaxLength(50)]
+    public string Location { get; init; } = string.Empty;
 
-    public List<Fighter> Fighters { get; set; } = new List<Fighter>();
+    public List<Fighter> Fighters { get; init; } = new List<Fighter>();
     
-    public string HeadCoach { get; set; } = String.Empty;
+    [MaxLength(50)]
+    public string HeadCoach { get; init; } = String.Empty;
     
-    public FightingStyle IsGoodFor { get; set; }
+    [NotMapped]
+    public FightingStyle? IsGoodFor { get; init; }
 }

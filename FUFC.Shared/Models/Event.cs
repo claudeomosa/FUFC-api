@@ -1,15 +1,18 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace FUFC.Shared.Models;
 
 public class Event
 {
-    public Ulid Id { get; set; }
+    [Key]
+    public int Id { get; init; }
 
-    public bool IsPpv { get; set; } = false;
+    public bool IsPpv { get; init; } = false;
 
-    public string Venue { get; set; } = string.Empty;
+    [MaxLength(50)]
+    public string Venue { get; init; } = string.Empty;
 
-    public ICollection<Bout> PrelimCard { get; set; } = new List<Bout>();
+    public ICollection<Bout> Bouts { get; init; } = new List<Bout>();
 
-    public ICollection<Bout> MainCard { get; set; } = new List<Bout>();
-    public DateTime Date { get; set; }
+    public DateTime Date { get; init; }
 }
