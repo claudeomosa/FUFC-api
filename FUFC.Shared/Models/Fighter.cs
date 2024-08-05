@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace FUFC.Shared.Models;
 
-public class Fighter(WeightClass fighterWeightClass)
+public class Fighter
 {
     public Ulid Id { get; set; }
     
@@ -11,7 +11,7 @@ public class Fighter(WeightClass fighterWeightClass)
     
     public string NickName { get; set; } = string.Empty;
 
-    public WeightClass WeightClass { get; init; } = fighterWeightClass;
+    public WeightClass? WeightClass { get; set; }
 
     public FightingStyle? PredominantStyle { get; set; }
     
