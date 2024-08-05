@@ -2,7 +2,7 @@ namespace FUFC.Shared.Models;
 
 public class Event
 {
-    public int Id { get; set; }
+    public Ulid Id { get; set; }
 
     public bool IsPpv { get; set; } = false;
 

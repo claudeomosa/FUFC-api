@@ -5,7 +5,7 @@ namespace FUFC.Shared.Models;
 
 public class Fighter(WeightClass fighterWeightClass)
 {
-    public int Id { get; set; }
+    public Ulid Id { get; set; }
     
     public string Name { get; set; } = string.Empty;
     

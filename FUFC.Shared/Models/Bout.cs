@@ -5,7 +5,7 @@ namespace FUFC.Shared.Models;
 
 public class Bout(Event boutEvent)
 {
-    public int Id { get; set; }
+    public Ulid Id { get; set; }
     
     public Fighter RedCorner { get; set; } = new Fighter(new WeightClass());
     
