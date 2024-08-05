@@ -7,9 +7,9 @@ public class Bout(Event boutEvent)
 {
     public int Id { get; set; }
     
-    public Fighter RedCorner { get; set; } = new Fighter();
+    public Fighter RedCorner { get; set; } = new Fighter(new WeightClass());
     
-    public Fighter BlueCorner { get; set; } = new Fighter();
+    public Fighter BlueCorner { get; set; } = new Fighter(new WeightClass());
 
     public bool IsForTitle { get; set; }
     

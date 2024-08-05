@@ -3,17 +3,17 @@ using System.Text.Json.Serialization;
 
 namespace FUFC.Shared.Models;
 
-public class Fighter
+public class Fighter(WeightClass fighterWeightClass)
 {
     public int Id { get; set; }
     
     public string Name { get; set; } = string.Empty;
     
     public string NickName { get; set; } = string.Empty;
-    
-    public string WeightClass { get; set; } = string.Empty;
-    
-    public FightingStyle PredominantStyle { get; set; }
+
+    public WeightClass WeightClass { get; init; } = fighterWeightClass;
+
+    public FightingStyle? PredominantStyle { get; set; }
     
     [Column(TypeName = "jsonb")]
     public FighterRecord Record { get; set; } = new FighterRecord();
@@ -56,7 +56,7 @@ public class Fighter
     
     public double Reach { get; set;  }
     
-    public FightingStance Stance { get; set; }
+    public FightingStance? Stance { get; set; }
     
     public int Age { get; set; }
     
@@ -70,29 +70,6 @@ public class SocialMedia
     public string Twitter { get; set; } = string.Empty;
     public string Facebook { get; set; } = string.Empty;
     public string Instagram { get; set; } = string.Empty;
-}
-public enum FightingStyle
-{
-    Boxing = 0,
-    Kickboxing = 1,
-    MuayThai = 2,
-    Wrestling = 3,
-    BrazilianJiuJitsu = 4,
-    Judo = 5,
-    Karate = 6,
-    Taekwondo = 7,
-    Sanda = 8,
-    Sambo = 9,
-    Capoeira = 10,
-    KungFu = 11,
-    Other
-}
-public enum FightingStance
-{
-    Orthodox = 0,
-    Southpaw = 1,
-    Switch = 2,
-    OpenStance = 3
 }
 public class FighterRecord
 {
