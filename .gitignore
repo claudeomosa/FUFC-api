@@ -212,6 +212,10 @@ PublishScripts/
 *.nuget.props
 *.nuget.targets
 
+
+# appsettings local
+/**/appsettings.json
+
 # Microsoft Azure Build Output
 csx/
 *.build.csdef
