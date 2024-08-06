@@ -15,11 +15,9 @@ public class Fighter
     [MaxLength(50)]
     public string NickName { get; init; } = string.Empty;
 
-    [NotMapped]
-    public WeightClass? WeightClass { get; init; }
+    public string WeightClass { get; init; } = Models.WeightClass.Unknown;
 
-    [NotMapped]
-    public FightingStyle? PredominantStyle { get; init; }
+    public string PredominantStyle { get; init; } = FightingStyle.Unknown;
     
     [Column(TypeName = "jsonb")]
     public FighterRecord? Record { get; init; }
@@ -62,9 +60,11 @@ public class Fighter
     public FighterSkillStats SkillStats { get; init; } = new FighterSkillStats();
     
     public double Reach { get; init;  }
+
+    [MaxLength(10)]
+    public string Gender { get; init; } = string.Empty;
     
-    [NotMapped]
-    public FightingStance? Stance { get; init; }
+    public string Stance { get; init; } = FightingStance.Unknown;
     
     public int Age { get; init; }
     

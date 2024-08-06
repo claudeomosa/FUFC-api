@@ -18,7 +18,6 @@ public class Gym
     
     [MaxLength(50)]
     public string HeadCoach { get; init; } = String.Empty;
-    
-    [NotMapped]
-    public FightingStyle? IsGoodFor { get; init; }
+
+    public string IsGoodFor { get; init; } = FightingStyle.Unknown;
 }

@@ -1,9 +1,10 @@
 namespace FUFC.Shared.Models;
 
-public class FightingStance
+public static class FightingStance
 {
-    public readonly string Orthodox = "Orthodox";
-    public readonly string Southpaw = "Southpaw";
-    public readonly string Switch = "Switch";
-    public readonly string OpenStance = "Open Stance";
+    public static readonly string Orthodox = "Orthodox";
+    public static readonly string Southpaw = "Southpaw";
+    public static readonly string Switch = "Switch";
+    public static readonly string OpenStance = "Open Stance";
+    public static readonly string Unknown = "";
 }

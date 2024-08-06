@@ -1,16 +1,17 @@
 namespace FUFC.Shared.Models;
-public class FightingStyle
+public static class FightingStyle
 {
-    public readonly string Boxing = "Boxing";
-    public readonly string Kickboxing = "Kick Boxing";
-    public readonly string MuayThai = "Muay Thai";
-    public readonly string Wrestling = "Wrestling";
-    public readonly string BrazilianJiuJitsu = "Brazilian Jiu Jitsu";
-    public readonly string Judo = "Judo";
-    public readonly string Karate = "Karate";
-    public readonly string Taekwondo = "Taekwondo";
-    public readonly string Sanda = "Sanda";
-    public readonly string Sambo = "Sambo";
-    public readonly string Capoeira = "Capoeira";
-    public readonly string KungFu = "Kung Fu";
+    public static readonly string Boxing = "Boxing";
+    public static readonly string Kickboxing = "Kick Boxing";
+    public static readonly string MuayThai = "Muay Thai";
+    public static readonly string Wrestling = "Wrestling";
+    public static readonly string BrazilianJiuJitsu = "Brazilian Jiu Jitsu";
+    public static readonly string Judo = "Judo";
+    public static readonly string Karate = "Karate";
+    public static readonly string Taekwondo = "Taekwondo";
+    public static readonly string Sanda = "Sanda";
+    public static readonly string Sambo = "Sambo";
+    public static readonly string Capoeira = "Capoeira";
+    public static readonly string KungFu = "Kung Fu";
+    public static readonly string Unknown = "";
 }
