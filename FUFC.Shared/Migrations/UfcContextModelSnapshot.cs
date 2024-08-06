@@ -112,6 +112,11 @@ namespace FUFC.Shared.Migrations
                     b.Property<bool>("Champion")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("Gender")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
                     b.Property<int>("GymId")
                         .HasColumnType("integer");
 
@@ -139,6 +144,10 @@ namespace FUFC.Shared.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("PredominantStyle")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<int>("Rank")
                         .HasColumnType("integer");
 
@@ -156,8 +165,16 @@ namespace FUFC.Shared.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
+                    b.Property<string>("Stance")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<double>("Weight")
                         .HasColumnType("double precision");
+
+                    b.Property<string>("WeightClass")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -178,6 +195,10 @@ namespace FUFC.Shared.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<string>("IsGoodFor")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("Location")
                         .IsRequired()

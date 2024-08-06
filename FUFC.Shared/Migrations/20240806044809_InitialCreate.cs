@@ -36,7 +36,8 @@ namespace FUFC.Shared.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     Location = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    HeadCoach = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false)
+                    HeadCoach = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    IsGoodFor = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -64,6 +65,8 @@ namespace FUFC.Shared.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     NickName = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    WeightClass = table.Column<string>(type: "text", nullable: false),
+                    PredominantStyle = table.Column<string>(type: "text", nullable: false),
                     Record = table.Column<FighterRecord>(type: "jsonb", nullable: true),
                     Champion = table.Column<bool>(type: "boolean", nullable: false),
                     InterimChampion = table.Column<bool>(type: "boolean", nullable: false),
@@ -75,6 +78,8 @@ namespace FUFC.Shared.Migrations
                     Rank = table.Column<int>(type: "integer", nullable: false),
                     SkillStats = table.Column<FighterSkillStats>(type: "jsonb", nullable: false),
                     Reach = table.Column<double>(type: "double precision", nullable: false),
+                    Gender = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
+                    Stance = table.Column<string>(type: "text", nullable: false),
                     Age = table.Column<int>(type: "integer", nullable: false),
                     SocialMedia = table.Column<SocialMedia>(type: "jsonb", nullable: false),
                     GymId = table.Column<int>(type: "integer", nullable: false)
