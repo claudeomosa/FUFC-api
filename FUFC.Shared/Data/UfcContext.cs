@@ -21,13 +21,6 @@ public class UfcContext : DbContext
     
     public DbSet<Bout> Bouts { get; set; }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Ignore<FightingStance>();
-        modelBuilder.Ignore<FightingStyle>();
-        modelBuilder.Ignore<WeightClass>();
-        base.OnModelCreating(modelBuilder);
-    }
 }
 
 public class UfcContextFactory : IDesignTimeDbContextFactory<UfcContext>
