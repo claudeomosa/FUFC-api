@@ -30,7 +30,7 @@ public class UfcContextFactory : IDesignTimeDbContextFactory<UfcContext>
         // Build the configuration
         var configuration = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json")
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
             .Build();
 
         // Create options builder
