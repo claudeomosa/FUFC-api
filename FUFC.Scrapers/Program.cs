@@ -1,17 +1,30 @@
 ﻿using System.Reflection;
+using System.Runtime.InteropServices.JavaScript;
 using FUFC.Scrapers.Common;
-using Microsoft.Extensions.Logging;
-using OpenTelemetry.Logs;
+using FUFC.Scrapers.Spiders;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Serilog;
 
-using var loggerFactory = LoggerFactory.Create(builder =>
-{
-    builder.AddOpenTelemetry(options =>
+var builder = new ConfigurationBuilder();
+
+BuildConfig(builder);
+
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Build())
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .CreateLogger();
+
+var host = Host.CreateDefaultBuilder()
+    .ConfigureServices((context, services) =>
     {
-        options.AddConsoleExporter();
-    });
-});
-
-var logger = loggerFactory.CreateLogger<Program>();
+        services.AddTransient<IUfcSpider, UfcStatsSpider>();
+        services.AddTransient<IUfcSpider, UfcOfficialSpider>();
+    })
+    .UseSerilog()
+    .Build();
 
 if (args.Length == 0 || string.IsNullOrEmpty(args[0]))
 {
@@ -21,48 +34,20 @@ if (args.Length == 0 || string.IsNullOrEmpty(args[0]))
 
 string spiderName = args[0];
 
-Type? spiderType;
-try
+if (spiderName == "UFC Stats Spider")
 {
-    spiderType = GetSpiderTypeByName(spiderName);
+    var svc = ActivatorUtilities.CreateInstance<UfcStatsSpider>(host.Services);
+    svc.Crawl();
 }
-catch (InvalidOperationException ex)
+else if (spiderName == "UFC Official Spider")
 {
-    Console.WriteLine(ex.Message);
-    Environment.Exit(1);
-    return;
-}
-
-if (spiderType == null)
-{
-    Console.WriteLine($"Error: Spider type for '{spiderName}' could not be found.");
-    Environment.Exit(1);
+    var svc = ActivatorUtilities.CreateInstance<UfcOfficialSpider>(host.Services); 
+    svc.Crawl();
 }
 
-IUfcSpider? spiderInstance = Activator.CreateInstance(spiderType) as IUfcSpider; 
 
-if (spiderInstance == null)
+static void BuildConfig(IConfigurationBuilder configurationBuilder)
 {
-    Console.WriteLine($"Error: Failed to create an instance of spider '{spiderName}'.");
-    Environment.Exit(1);
-}
-
-Console.WriteLine($"Initiating crawl for {spiderName}...");
- 
-spiderInstance.Crawl();
-
-static Type GetSpiderTypeByName(string name)
-{
-    var types = Assembly.GetExecutingAssembly().GetTypes();
-    
-    var spiderType = types.FirstOrDefault(t =>
-        typeof(IUfcSpider).IsAssignableFrom(t) &&
-        t.GetProperty("Name")?.GetValue(Activator.CreateInstance(t))?.ToString() == name);
-
-    if (spiderType == null)
-    {
-        throw new InvalidOperationException($"No spider found with the name '{name}'.");
-    }
-
-    return spiderType; 
+    configurationBuilder.SetBasePath(Directory.GetCurrentDirectory())
+        .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 }
