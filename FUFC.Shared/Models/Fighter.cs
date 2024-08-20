@@ -7,134 +7,137 @@ namespace FUFC.Shared.Models;
 public class Fighter
 {
     [Key]
-    public int Id { get; init; }
-    
-    [MaxLength(50)]
-    public string Name { get; init; } = string.Empty;
-    
-    [MaxLength(50)]
-    public string NickName { get; init; } = string.Empty;
+    public int Id { get; set; }
 
-    public string WeightClass { get; init; } = Models.WeightClass.Unknown;
+    [MaxLength(50)]
+    public string Name { get; set; } = string.Empty;
 
-    public string PredominantStyle { get; init; } = FightingStyle.Unknown;
-    
+    [MaxLength(50)]
+    public string NickName { get; set; } = string.Empty;
+
+    public string WeightClass { get; set; } = Models.WeightClass.Unknown;
+
+    public string PredominantStyle { get; set; } = FightingStyle.Unknown;
+
     [Column(TypeName = "jsonb")]
-    public FighterRecord? Record { get; init; }
+    public FighterRecord? Record { get; set; }
 
-    public bool Champion { get; init; }
-    
-    public bool InterimChampion { get; init; }
-    
-    public double Height { get; init; }
-    
-    public double Weight { get; init; }
+    public bool Champion { get; set; }
+
+    public bool InterimChampion { get; set; }
+
+    public double Height { get; set; }
+
+    public int Weight { get; set; }
 
     [MaxLength(50)]
-    public string HomeCity { get; init; } = string.Empty;
+    public string HomeCity { get; set; } = string.Empty;
 
-    public bool Active { get; init; } = true;
+    public bool IsActive { get; set; } = true;
 
-    private readonly bool _isRanked;
-    public bool IsRanked 
-    { 
-        get => _isRanked; 
-        init 
-        { 
-            _isRanked = value; 
+    private bool _isRanked;
+    public bool IsRanked
+    {
+        get => _isRanked;
+        set
+        {
+            _isRanked = value;
             if (!_isRanked)
             {
                 Rank = 0;
             }
-        } 
+        }
     }
 
-    private readonly int _rank;
-    public int Rank 
-    { 
-        get => _rank; 
-        init => _rank = IsRanked ? value : 0;
+    private int _rank;
+    public int Rank
+    {
+        get => _rank;
+        set => _rank = IsRanked ? value : 0;
     }
 
     [Column(TypeName = "jsonb")]
-    public FighterSkillStats SkillStats { get; init; } = new FighterSkillStats();
-    
-    public double Reach { get; init;  }
+    public FighterSkillStats SkillStats { get; set; } = new FighterSkillStats();
+
+    public double Reach { get; set; }
 
     [MaxLength(10)]
-    public string Gender { get; init; } = string.Empty;
-    
-    public string Stance { get; init; } = FightingStance.Unknown;
-    
-    public int Age { get; init; }
-    
-    [Column(TypeName = "jsonb")]
-    public SocialMedia SocialMedia { get; init; } = new SocialMedia();
+    public string Gender { get; set; } = string.Empty;
 
-    public Gym Gym { get; init; } = new Gym();
+    public string Stance { get; set; } = FightingStance.Unknown;
+
+    public int Age { get; set; }
+
+    [Column(TypeName = "jsonb")]
+    public SocialMedia SocialMedia { get; set; } = new SocialMedia();
+
+    public Gym Gym { get; set; } = new Gym();
 }
 public class SocialMedia
 {
-    public string Twitter { get; init; } = string.Empty;
-    public string Facebook { get; init; } = string.Empty;
-    public string Instagram { get; init; } = string.Empty;
+    public string Twitter { get; set; } = string.Empty;
+    public string Facebook { get; set; } = string.Empty;
+    public string Instagram { get; set; } = string.Empty;
 }
 public class FighterRecord
 {
     [JsonPropertyName("wins")]
-    public int Wins { get; init; }
+    public int Wins { get; set; }
 
     [JsonPropertyName("losses")]
-    public int Losses { get; init; }
+    public int Losses { get; set; }
 
     [JsonPropertyName("draws")]
-    public int Draws { get; init; }
+    public int Draws { get; set; }
 
     [JsonPropertyName("no_contests")]
-    public int NoContests { get; init; }
-    
+    public int NoContests { get; set; }
+
     [JsonPropertyName("wins_by_ko_or_tko")]
-    public int WinsByKoOrTko { get; init; }
-    
+    public int WinsByKoOrTko { get; set; }
+
     [JsonPropertyName("wins_by_sub")]
-    public int WinsBySub { get; init; }
-    
+    public int WinsBySub { get; set; }
+
     [JsonPropertyName("wins_by_decision")]
-    public int WinsByDecision { get; init; }
-    
+    public int WinsByDecision { get; set; }
+
     [JsonPropertyName("losses_by_ko_or_tko")]
-    public int LossesByKoOrTko { get; init; }
-    
+    public int LossesByKoOrTko { get; set; }
+
     [JsonPropertyName("losses_by_sub")]
-    public int LossesBySub { get; init; }
-    
+    public int LossesBySub { get; set; }
+
     [JsonPropertyName("losses_by_decision")]
-    public int LossesByDecision { get; init; }
+    public int LossesByDecision { get; set; }
 }
 
 public class FighterSkillStats
 {
     [JsonPropertyName("striking_accuracy")]
-    public double StrikingAccuracy { get; init; }
-    
+    public double StrikingAccuracy { get; set; }
+
     [JsonPropertyName("striking_defense")]
-    public double StrikingDefense { get; init; }
-    
+    public double StrikingDefense { get; set; }
+
     [JsonPropertyName("takedown_average")]
-    public double TakedownAverage { get; init; }
-    
+    public double TakedownAverage { get; set; }
+
     [JsonPropertyName("takedown_defense")]
-    public double TakedownDefense { get; init; }
+    public double TakedownDefense { get; set; }
+
+    [JsonPropertyName("takedown_accuracy")]
+    public double TakedownAccuracy { get; set; }
 
     [JsonPropertyName("average_fight_time")]
-    public TimeSpan AverageFightTime { get; init; }
+    public TimeSpan AverageFightTime { get; set; }
 
     [JsonPropertyName("submission_average")]
-    public double SubmissionAverage { get; init; }
-    
+    public double SubmissionAverage { get; set; }
+
     [JsonPropertyName("average_strikes_landed_per_minute")]
-    public double AverageStrikesLandedPerMinute { get; init; }
-    
+    public double AverageStrikesLandedPerMinute { get; set; }
+
     [JsonPropertyName("average_strikes_absorbed_per_minute")]
-    public double AverageStrikesAbsorbedPerMinute { get; init; }
+    public double AverageStrikesAbsorbedPerMinute { get; set; }
 }
