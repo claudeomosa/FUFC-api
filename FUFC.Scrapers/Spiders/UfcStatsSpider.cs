@@ -1,13 +1,15 @@
 using System.Globalization;
 using FUFC.Scrapers.Common;
+using FUFC.Shared.Data;
 using FUFC.Shared.Models;
+using FUFC.Shared.Services;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace FUFC.Scrapers.Spiders;
 
-public class UfcStatsSpider(ILogger<UfcStatsSpider> logger, IConfiguration config) : IUfcSpider
+public class UfcStatsSpider(ILogger<UfcStatsSpider> logger, IConfiguration config, UfcContext dbContext) : IUfcSpider
 {
     private readonly IConfiguration _config = config;
     private readonly HtmlWeb _web = new HtmlWeb();
@@ -192,7 +194,7 @@ public class UfcStatsSpider(ILogger<UfcStatsSpider> logger, IConfiguration confi
             throw new KeyNotFoundException("One or more required keys are missing in the fighterInfoDictionary.");
         }
 
-        return new Fighter()
+        Fighter fighter = new Fighter()
         {
             Name = name,
             NickName = nickname,
@@ -221,6 +223,9 @@ public class UfcStatsSpider(ILogger<UfcStatsSpider> logger, IConfiguration confi
                 NoContests = fighterRecordStatistics.TryGetValue("NoContest", out int nc) ? nc : 0
             }
         };
+        
+        FighterServices.AddFighter(dbContext, fighter);
+        return fighter;
     }
 
     private Dictionary<string, int> GetFighterRecordStats(string record)

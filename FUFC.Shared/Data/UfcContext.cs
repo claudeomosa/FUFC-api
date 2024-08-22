@@ -10,16 +10,26 @@ public class UfcContext : DbContext
     public UfcContext(DbContextOptions<UfcContext> options) : base(options)
     {
     }
-    
+
     public DbSet<Gym> Gyms { get; set; }
 
     public DbSet<Fighter> Fighters { get; set; }
-    
+
     public DbSet<Referee> Referees { get; set; }
-    
+
     public DbSet<Event> Events { get; set; }
-    
+
     public DbSet<Bout> Bouts { get; set; }
+    
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder
+            .Entity<Fighter>()
+            .OwnsOne(fighter => fighter.Record, builder => { builder.ToJson(); })
+            .OwnsOne(fighter => fighter.SkillStats, builder => builder.ToJson())
+            .OwnsOne(fighter => fighter.SocialMedia, builder => builder.ToJson());
+            
+    }
 
 }
 

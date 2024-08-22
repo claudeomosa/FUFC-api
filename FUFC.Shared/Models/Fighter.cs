@@ -33,7 +33,7 @@ public class Fighter
     [MaxLength(50)]
     public string HomeCity { get; set; } = string.Empty;
 
-    public bool IsActive { get; set; } = true;
+    public bool Active { get; set; } = true;
 
     private bool _isRanked;
     public bool IsRanked

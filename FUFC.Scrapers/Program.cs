@@ -2,6 +2,8 @@
 using System.Runtime.InteropServices.JavaScript;
 using FUFC.Scrapers.Common;
 using FUFC.Scrapers.Spiders;
+using FUFC.Shared.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -17,11 +19,20 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateLogger();
 
+var configuration = new ConfigurationBuilder()
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .Build();
+
+
 var host = Host.CreateDefaultBuilder()
     .ConfigureServices((context, services) =>
     {
         services.AddTransient<IUfcSpider, UfcStatsSpider>();
-        services.AddTransient<IUfcSpider, UfcOfficialSpider>();
+        services.AddTransient<IUfcSpider, UfcOfficialSpider>(); 
+        services.AddDbContext<UfcContext>(options =>
+            options.UseNpgsql(configuration.GetConnectionString("UfcDB")));
+
     })
     .UseSerilog()
     .Build();
@@ -41,7 +52,7 @@ if (spiderName == "UFC Stats Spider")
 }
 else if (spiderName == "UFC Official Spider")
 {
-    var svc = ActivatorUtilities.CreateInstance<UfcOfficialSpider>(host.Services); 
+    var svc = ActivatorUtilities.CreateInstance<UfcOfficialSpider>(host.Services);
     svc.Crawl();
 }
 
