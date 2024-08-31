@@ -5,7 +5,12 @@ namespace FUFC.Shared.Models;
 public class Referee
 {
     [Key]
-    public int Id { get; init; }
+    public Ulid Id { get; init; }
+
+    public Referee()
+    {
+        Id = Ulid.NewUlid();
+    }
 
     public string Name { get; init; } = string.Empty;
 }

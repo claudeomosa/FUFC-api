@@ -7,7 +7,7 @@ namespace FUFC.Shared.Data;
 
 public class UfcContext : DbContext
 {
-    public UfcContext(DbContextOptions<UfcContext> options) : base(options)
+    public UfcContext(DbContextOptions<UfcContext>? options) : base(options)
     {
     }
 
@@ -20,7 +20,7 @@ public class UfcContext : DbContext
     public DbSet<Event> Events { get; set; }
 
     public DbSet<Bout> Bouts { get; set; }
-    
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
@@ -28,7 +28,42 @@ public class UfcContext : DbContext
             .OwnsOne(fighter => fighter.Record, builder => { builder.ToJson(); })
             .OwnsOne(fighter => fighter.SkillStats, builder => builder.ToJson())
             .OwnsOne(fighter => fighter.SocialMedia, builder => builder.ToJson());
-            
+
+        modelBuilder.Entity<Bout>()
+            .OwnsOne(bout => bout.Result, builder => builder.ToJson());
+
+        modelBuilder.Entity<Fighter>()
+            .Property(f => f.Id)
+            .HasConversion(
+                ulid => ulid.ToString(),
+                ulidString => Ulid.Parse(ulidString)
+            );
+        modelBuilder.Entity<Bout>()
+            .Property(b => b.Id)
+            .HasConversion(
+                ulid => ulid.ToString(),
+                ulidString => Ulid.Parse(ulidString)
+            );
+        modelBuilder.Entity<Event>()
+            .Property(e => e.Id)
+            .HasConversion(
+                ulid => ulid.ToString(),
+                ulidString => Ulid.Parse(ulidString)
+            );
+        modelBuilder.Entity<Gym>()
+            .Property(g => g.Id)
+            .HasConversion(
+                ulid => ulid.ToString(),
+                ulidString => Ulid.Parse(ulidString)
+            );
+        modelBuilder.Entity<Referee>()
+            .Property(r => r.Id)
+            .HasConversion(
+                ulid => ulid.ToString(),
+                ulidString => Ulid.Parse(ulidString)
+            );
+        base.OnModelCreating(modelBuilder);
+        
     }
 
 }

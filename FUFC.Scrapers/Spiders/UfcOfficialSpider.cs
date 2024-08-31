@@ -1,5 +1,8 @@
+using System.Text.RegularExpressions;
 using FUFC.Scrapers.Common;
+using FUFC.Shared.Data;
 using FUFC.Shared.Models;
+using FUFC.Shared.Services;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -7,38 +10,30 @@ using Serilog;
 
 namespace FUFC.Scrapers.Spiders;
 
-public class UfcOfficialSpider : IUfcSpider
+public class UfcOfficialSpider(ILogger<UfcStatsSpider> logger, IConfiguration config, UfcContext dbContext) : IUfcSpider
 {
-    private readonly ILogger<UfcOfficialSpider> _logger;
-
-    private readonly IConfiguration _config;
-
-    public UfcOfficialSpider(ILogger<UfcOfficialSpider> logger, IConfiguration config)
-    {
-        _logger = logger;
-        _config = config;
-    }
+    private readonly IConfiguration _config = config;
+    private readonly HtmlWeb _web = new HtmlWeb();
 
     public string BasePath => "https://www.ufc.com";
     public string Name => "UFC Official Spider";
 
-    // private readonly string _rankingsPath => string.Concat(BasePath, "/rankings")
-
     public void Crawl()
     {
-        _logger.LogInformation("{name} is Crawling", Name);
-
-        HtmlWeb web = new HtmlWeb();
+        logger.LogInformation("{name} is Crawling", Name);
 
         // Get Ranked Fighters
-        var rankedFighters = GetRankedFighters(web);
+        //var rankedFighters = GetRankedFighters();
+
+        // Get Events
+        var bouts = GetBouts();
     }
 
-    private List<Fighter> GetRankedFighters(HtmlWeb web)
+    private List<Fighter> GetRankedFighters()
     {
         Uri rankingsUrl = new UriBuilder(BasePath) { Path = "/rankings" }.Uri;
 
-        var document = web.Load(rankingsUrl.AbsoluteUri);
+        var document = _web.Load(rankingsUrl.AbsoluteUri);
 
         var rankedFightersLinks = document.QuerySelectorAll(".views-field.views-field-title");
 
@@ -66,16 +61,16 @@ public class UfcOfficialSpider : IUfcSpider
 
             // var fighterDocument = web.Load(fighterUrl.Uri.AbsoluteUri);
 
-            rankedFighters.Add(GetFighterDetails(web, fighterUrl.Uri.AbsoluteUri));
+            rankedFighters.Add(GetFighterDetails(fighterUrl.Uri.AbsoluteUri));
             rankedFightersDictionary[fighterName] = fighterUrl.Uri.AbsoluteUri;
         }
 
         return rankedFighters;
     }
 
-    private Fighter GetFighterDetails(HtmlWeb web, string fighterPath)
+    private Fighter GetFighterDetails(string fighterPath)
     {
-        var fighterDocument = web.Load(fighterPath);
+        var fighterDocument = _web.Load(fighterPath);
 
         string fighterName =
             fighterDocument.QuerySelector(".hero-profile__name").InnerText ?? string.Empty;
@@ -118,11 +113,11 @@ public class UfcOfficialSpider : IUfcSpider
             WeightClass = fighterWeightClass,
             Record = ParseRecord(baseRecordString),
             IsRanked = true,
-            IsActive = true,
-            HomeCity = bioData.TryGetValue("Place of Birth", out string homeCity) ? homeCity : string.Empty ,
+            Active = true,
+            HomeCity = bioData.TryGetValue("Place of Birth", out string homeCity) ? homeCity : string.Empty,
             PredominantStyle = bioData.TryGetValue("Fighting style", out string predominantStyle) ? predominantStyle : String.Empty,
             Height = Convert.ToDouble(bioData.TryGetValue("Height", out string height) ? height : string.Empty),
-            Weight = Convert.ToDouble(bioData.TryGetValue("Height", out string weight) ? weight : string.Empty),
+            Weight = (int)decimal.Parse(bioData.TryGetValue("Weight", out string weight) ? weight : string.Empty),
             Rank = 1,
             Reach = Convert.ToDouble(bioData.TryGetValue("Reach", out string reach) ? reach : string.Empty),
             Age = int.Parse(bioData.TryGetValue("Age", out string age) ? age : string.Empty),
@@ -158,6 +153,63 @@ public class UfcOfficialSpider : IUfcSpider
             Losses = recordDict.ContainsKey("L") ? recordDict["L"] : 0,
             Draws = recordDict.ContainsKey("D") ? recordDict["D"] : 0,
         };
+    }
+
+    private List<Event> GetEvents()
+    {
+        Uri eventsUrl = new UriBuilder(BasePath) { Path = "events" }.Uri;
+
+        var document = _web.Load(eventsUrl);
+
+        // l-listing__item views-row 
+        var eventNodes = document.QuerySelectorAll(".l-listing__item.views-row");
+
+        return new List<Event>();
+    }
+
+    private List<Bout> GetBouts()
+    {
+        List<Event> allEvents = EventServices.GetAllEvents(dbContext).ToList();
+
+        foreach (var _event in allEvents)
+        {
+            if (_event.IsPpv)
+            {
+                string pathEndpoint = "/event/" +  _event.Name.Split(":")[0].Replace(" ", "-").ToLower();
+                Uri eventUfcUri = new UriBuilder(BasePath) { Path = pathEndpoint }.Uri;
+
+                List<Bout> scrapedBouts = GetEventBouts(eventUfcUri);
+            }
+
+        }
+
+        return new List<Bout>();
+    }
+
+    private List<Bout> GetEventBouts(Uri eventUfcUri)
+    {
+        HtmlDocument doc = _web.Load(eventUfcUri);
+
+        var bouts = doc.QuerySelectorAll(".c-listing-fight__content");
+        
+        
+        
+        
+        return new List<Bout>();
+    }
+
+    private static string ExtractEventCode(string eventName)
+    {
+        var pattern = @"UFC (\d+):";
+        var match = Regex.Match(eventName, pattern);
+
+        if (match.Success)
+        {
+            string eventNumber = match.Groups[1].Value;
+            return $"ufc-{eventNumber}";
+        }
+
+        return null;
     }
 }
 

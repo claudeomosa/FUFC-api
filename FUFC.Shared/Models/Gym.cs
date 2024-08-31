@@ -6,7 +6,12 @@ namespace FUFC.Shared.Models;
 public class Gym
 {
     [Key]
-    public int Id { get; init; }
+    public Ulid Id { get; init; }
+
+    public Gym()
+    {
+        Id = new Ulid();
+    }
 
     [MaxLength(50)]
     public string Name { get; init; } = string.Empty;
@@ -14,8 +19,8 @@ public class Gym
     [MaxLength(50)]
     public string Location { get; init; } = string.Empty;
 
-    public List<Fighter> Fighters { get; init; } = new List<Fighter>();
-    
+    public List<Fighter> Fighters { get; init; }
+
     [MaxLength(50)]
     public string HeadCoach { get; init; } = String.Empty;
 

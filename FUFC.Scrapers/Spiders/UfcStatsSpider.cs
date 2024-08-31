@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using FUFC.Scrapers.Common;
 using FUFC.Shared.Data;
 using FUFC.Shared.Models;
@@ -13,7 +14,7 @@ public class UfcStatsSpider(ILogger<UfcStatsSpider> logger, IConfiguration confi
 {
     private readonly IConfiguration _config = config;
     private readonly HtmlWeb _web = new HtmlWeb();
-    
+
     public string Name => "UFC Stats Spider";
     public string BasePath => "http://www.ufcstats.com/";
     public void Crawl()
@@ -22,11 +23,11 @@ public class UfcStatsSpider(ILogger<UfcStatsSpider> logger, IConfiguration confi
 
         Console.WriteLine("Crawling... ");
 
-        var fighters = GetFighters();
-        //var events = GetEvents();
+        //var fighters = GetFighters();
+        var events = GetEvents();
     }
 
-    private List<Event> GetEvents()
+    private async Task<List<Event>> GetEvents()
     {
         // {BasePath}statistics/events/completed
         Uri eventsUrl = new UriBuilder(BasePath) { Path = "statistics/events/completed", Query = "page=all" }.Uri;
@@ -41,13 +42,21 @@ public class UfcStatsSpider(ILogger<UfcStatsSpider> logger, IConfiguration confi
 
         foreach (var pastEvent in pastEvents)
         {
-            events.Add(GetEventDetails(pastEvent));
+            Event scrapedEvent = await GetEventDetails(pastEvent);
+
+            bool eventExists = EventServices.GetAllEvents(dbContext).ToList().Any(ev => ev.Name == scrapedEvent.Name);
+
+            if (!eventExists)
+            {
+                EventServices.AddEvent(dbContext, scrapedEvent);
+                //events.Add(scrapedEvent);
+            }
         }
 
         return events;
     }
 
-    private Event GetEventDetails(HtmlNode eventCard)
+    private async Task<Event> GetEventDetails(HtmlNode eventCard)
     {
         // var hrefAttributes = eventCard.Attributes.AttributesWithName("href").GetEnumerator();
 
@@ -81,14 +90,14 @@ public class UfcStatsSpider(ILogger<UfcStatsSpider> logger, IConfiguration confi
                 }
             }
 
-            eventObject.Name = eventName.InnerText.Trim();
-            eventObject.Date = DateTime.Parse(eventDetailsDict["Date"]);
-            eventObject.Venue = eventDetailsDict["Location"];
+            eventObject.Name = eventName != null ? eventName.InnerText.Trim() : string.Empty;
+            eventObject.Date = DateTime.Parse(eventDetailsDict.TryGetValue("Date", out string date) ? date : string.Empty);
+            eventObject.Venue = eventDetailsDict.TryGetValue("Location", out string location) ? location : string.Empty;
 
             var boutCards =
                 eventDoc.QuerySelectorAll(
                     ".b-fight-details__table-row.b-fight-details__table-row__hover.js-fight-details-click");
-
+/*
             foreach (var boutCard in boutCards)
             {
                 var boutLink = boutCard.Attributes.FirstOrDefault(attr => attr.Name == "data-link").Value ?? string.Empty;
@@ -98,52 +107,227 @@ public class UfcStatsSpider(ILogger<UfcStatsSpider> logger, IConfiguration confi
                     Uri boutUri = new UriBuilder(boutLink).Uri;
                     GetEventBout(boutUri);
                 }
+            }*/
+
+            var boutNodes =
+                eventDoc.QuerySelectorAll(
+                    ".b-fight-details__table-row.b-fight-details__table-row__hover.js-fight-details-click");
+
+            foreach (var boutNode in boutNodes)
+            {
+                var boutPath = boutNode.Attributes.FirstOrDefault(attr => attr.Name == "data-link").Value ?? string.Empty;
+
+                if (boutPath != null)
+                {
+                    //_web.Load(new UriBuilder(boutPath).Uri);
+                    Bout bout = await GetEventBout(new UriBuilder(boutPath).Uri);
+                    
+                    Event eventFound = EventServices.GetAllEvents(dbContext).ToList().FirstOrDefault(ev => ev.Name == eventObject.Name);
+
+                    if (eventFound != null)
+                    {
+                        bout.Event = eventFound;
+                        if (!BoutServices.GetAllBouts(dbContext).ToList().Any(b => b == bout))
+                        {
+                            BoutServices.AddBout(dbContext, bout);
+                        }
+                    }
+                }
+                
             }
+            //List<Bout> bouts = GetEventBouts(Uri eventLink);
         }
+
+        
         return eventObject;
     }
 
-    private Bout GetEventBout(Uri boutUri)
+    private async Task<Bout?> GetEventBout(Uri boutUri)
     {
         HtmlDocument boutDoc = _web.Load(boutUri);
 
-        var fighters = boutDoc.QuerySelectorAll("b-fight-details__person");
+        var fighters = boutDoc.QuerySelectorAll(".b-fight-details__person");
 
         var boutDetails = boutDoc.QuerySelectorAll(".b-fight-details__text-item");
 
+        Dictionary<string, string> detailsDictionary = new Dictionary<string, string>();
 
-        Bout bout = new Bout();
+        foreach (var detail in boutDetails)
+        {
+            string innerTextTrimmed = Regex.Replace(detail.InnerText, @"\s+", "");
+            var keyNode = detail.QuerySelector(".b-fight-details__label");
+            var valueNode = keyNode?.NextSibling;
 
-        return bout;
+            if (keyNode != null && valueNode != null)
+            {
+                string key = keyNode.InnerText.Trim().Trim(':');
+                string value = valueNode.InnerText.Trim();
+
+                if (key == "Referee" && string.IsNullOrEmpty(value) && !string.IsNullOrEmpty(innerTextTrimmed))
+                {
+                    string newValue = innerTextTrimmed.Split(':')[1];
+                    value = Regex.Replace(newValue, "(?<!^)([A-Z])", " $1");
+                }
+
+                detailsDictionary[key] = value;
+            }
+        }
+        var methodNode = boutDoc.DocumentNode.SelectSingleNode("//i[@class='b-fight-details__text-item_first']");
+
+        if (methodNode != null)
+        {
+            // Extract the key
+            var keyNode = methodNode.SelectSingleNode(".//i[@class='b-fight-details__label']");
+            string key = keyNode?.InnerText.Trim().TrimEnd(':');
+
+            // Extract the value
+            var valueNode = methodNode.SelectSingleNode(".//i[@style='font-style: normal']");
+            string value = valueNode?.InnerText.Trim();
+
+            // Add to dictionary
+            if (key != null && value != null)
+            {
+                detailsDictionary[key] = value;
+            }
+        } 
+        
+        string[] weightClassAndTitleInfo = boutDoc.QuerySelector(".b-fight-details__fight-title").InnerText.Trim().Split(" ");
+
+        string weightClass = "";
+        bool isForTitle = false;
+        if (weightClassAndTitleInfo.Length == 4)
+        {
+            weightClass = weightClassAndTitleInfo[1];
+            isForTitle = true;
+        }
+
+        if (weightClassAndTitleInfo.Length == 2)
+        {
+            weightClass = weightClassAndTitleInfo[0];
+        }
+
+        List<Dictionary<string, string>> fighterDetailsList = new List<Dictionary<string, string>>();
+
+        foreach (var fighter in fighters)
+        {
+            // Dictionary to hold the values
+            Dictionary<string, string> values = new Dictionary<string, string>();
+
+            var statusNode = fighter.QuerySelector(".b-fight-details__person-status");
+            var nameNode = fighter.QuerySelector(".b-fight-details__person-name a");
+            var nicknameNode = fighter.QuerySelector(".b-fight-details__person-title");
+
+            if (statusNode != null)
+            {
+                values["Status"] = statusNode.InnerText.Trim();
+            }
+
+            if (nameNode != null)
+            {
+                values["Name"] = nameNode.InnerText.Trim();
+            }
+
+            if (nicknameNode != null)
+            {
+                values["Nickname"] = nicknameNode.InnerText.Trim().Trim('\'');
+            }
+
+            fighterDetailsList.Add(values);
+        }
+
+        Fighter redCorner =
+            fighterDetailsList[0].TryGetValue("Name", out string rcNname) &&
+            fighterDetailsList[0].TryGetValue("Nickname", out string rcNickname)
+                ? FighterServices.GetFighterByNameAndNicknameInWeightClass(dbContext, rcNname, rcNickname, weightClass)
+                : null; 
+        
+        Fighter blueCorner =
+            fighterDetailsList[1].TryGetValue("Name", out string bcName) &&
+            fighterDetailsList[1].TryGetValue("Nickname", out string bcNickname)
+                ? FighterServices.GetFighterByNameAndNicknameInWeightClass(dbContext, bcName, bcNickname, weightClass)
+                : null;
+        
+        string refName = detailsDictionary.TryGetValue("Referee", out refName) ? refName : string.Empty;
+
+        Referee? referee = RefereeServices.GetRefereeByName(dbContext, refName) == null
+            ? RefereeServices.Add(dbContext, new Referee()
+            {
+                Name = refName
+            })
+            : RefereeServices.GetRefereeByName(dbContext, refName);
+        
+        if (blueCorner != null && redCorner != null)
+        {
+            Bout bout = new Bout()
+            {
+                RedCorner = redCorner,
+                BlueCorner = blueCorner,
+                Referee = referee,
+                IsForTitle = isForTitle,
+                Result = new BoutResult()
+                {
+                    Method = detailsDictionary.TryGetValue("Method", out string method) ? method : string.Empty,
+                    Round = detailsDictionary.TryGetValue("Round", out string round) ? int.Parse(round) : 0,
+                    Winner = fighterDetailsList.FirstOrDefault(fd => fd["Status"] == "W")["Name"]
+                }
+                
+            };
+            return bout;
+        }
+
+        //throw new Exception("");
+        return null;
     }
 
 
     private List<Fighter> GetFighters()
     {
-        Uri fightersUri = new UriBuilder(BasePath) { Path = "statistics/fighters" }.Uri;
-
-        var fightersDoc = _web.Load(fightersUri);
-
-        var fighterLinkNodes = fightersDoc.QuerySelectorAll(".b-link.b-link_style_black");
-
         var fightersList = new List<Fighter>();
-        
+
         var fighterLinksSet = new HashSet<string>();
         
-        foreach (var fighterLinkNode in fighterLinkNodes)
+        for (char c = 'p'; c <= 'z'; c++)
         {
-            string fighterLink = fighterLinkNode.Attributes.FirstOrDefault(attr => attr.Name == "href").Value ?? string.Empty;
-
-            if (fighterLinksSet.Add(fighterLink)) // Adds to set only if the link is unique
+            Uri fightersUri = new UriBuilder(BasePath)
             {
-                Uri fighterUri = new UriBuilder(fighterLink).Uri;
+                Path = "statistics/fighters",
+                Query = $"char={c}&page=all"
+            }.Uri;
+            //Uri fightersUri = new UriBuilder(BasePath) { Path = "statistics/fighters", Query = "page=all"}.Uri;
 
-                Fighter fighter = GetFighter(fighterUri);
+            var fightersDoc = _web.Load(fightersUri);
 
-                fightersList.Add(fighter);
+            var fighterLinkNodes = fightersDoc.QuerySelectorAll(".b-link.b-link_style_black");
+
+            foreach (var fighterLinkNode in fighterLinkNodes)
+            {
+                string fighterLink = fighterLinkNode.Attributes.FirstOrDefault(attr => attr.Name == "href").Value ??
+                                     string.Empty;
+
+                if (fighterLinksSet.Add(fighterLink)) // Adds to set only if the link is unique
+                {
+                    Uri fighterUri = new UriBuilder(fighterLink).Uri;
+
+                    Fighter fighter = GetFighter(fighterUri);
+
+                    // add fighter if does not exist
+                    bool fighterExists = FighterServices.GetAllFighters(dbContext).ToList()
+                        .Exists(f => f.Name == fighter.Name && f.WeightClass == fighter.WeightClass);
+
+                    if (!fighterExists)
+                    {
+                        FighterServices.AddFighter(dbContext, fighter);
+                        logger.LogInformation("New Fighter Added: {fighterName} ", fighter.Name);
+                        fightersList.Add(fighter);
+                    }
+                    else
+                    {
+                        logger.LogError("Error Adding Fighter, {fighterName} already exists", fighter.Name);
+                    }
+                }
             }
         }
-        
+
         return fightersList;
     }
 
@@ -158,14 +342,14 @@ public class UfcStatsSpider(ILogger<UfcStatsSpider> logger, IConfiguration confi
         var nicknameNode = fighterDoc.DocumentNode.SelectSingleNode("//p[@class='b-content__Nickname']");
 
         var fighterInfoNodes = fighterDoc.QuerySelectorAll(".b-list__box-list-item.b-list__box-list-item_type_block");
-        string name = nameNode.InnerText.Trim();
-        string record = recordNode.InnerText.Replace("Record:", "").Trim();
-        string nickname = nicknameNode.InnerText.Trim();
+        string name = nameNode != null ? nameNode.InnerText.Trim() : string.Empty;
+        string record = recordNode != null ? recordNode.InnerText.Replace("Record:", "").Trim() : string.Empty;
+        string nickname = nicknameNode != null ? nicknameNode.InnerText.Trim() : string.Empty;
 
         Dictionary<string, string> fighterInfoDictionary = new Dictionary<string, string>();
         foreach (var fighterInfoNode in fighterInfoNodes)
         {
-            var infoParts = fighterInfoNode.InnerText.Split(new[] { ':' }, 2);
+            var infoParts = fighterInfoNode != null ? fighterInfoNode.InnerText.Split(new[] { ':' }, 2) : [];
             if (infoParts.Length == 2)
             {
                 var key = infoParts[0].Trim();
@@ -223,8 +407,7 @@ public class UfcStatsSpider(ILogger<UfcStatsSpider> logger, IConfiguration confi
                 NoContests = fighterRecordStatistics.TryGetValue("NoContest", out int nc) ? nc : 0
             }
         };
-        
-        FighterServices.AddFighter(dbContext, fighter);
+
         return fighter;
     }
 
@@ -278,15 +461,16 @@ public class UfcStatsSpider(ILogger<UfcStatsSpider> logger, IConfiguration confi
             // Convert feet and inches to centimeters
             double cm = (feet * 30.48) + (inches * 2.54);
 
-            return cm;
+            // Return the result rounded to 2 decimal places
+            return Math.Round(cm, 2);
         }
         else
         {
             // Handle the case where the input is just inches
             if (int.TryParse(height, out int inches))
             {
-                // Convert inches to centimeters
-                return inches * 2.54;
+                // Convert inches to centimeters and round to 2 decimal places
+                return Math.Round(inches * 2.54, 2);
             }
             else
             {
