@@ -10,6 +10,10 @@ namespace FUFC.Shared.Models
         public static readonly string MiddleWeight = "Middleweight";
         public static readonly string LightHeavyWeight = "Light Heavyweight";
         public static readonly string HeavyWeight = "Heavyweight";
+        public static readonly string WomenStrawWeight = "Women's Stawweight";
+        public static readonly string WomenFlyWeight = "Women's Flyweight";
+        public static readonly string WomenBantamWeight = "Women's Bantamweight";
+        public static readonly string WomenFeatherweight = "Women's Featherweight";
         public static readonly string Unknown = "";
 
         public static string GetWeightClass(int weightInLbs)
@@ -28,5 +32,24 @@ namespace FUFC.Shared.Models
                 _ => Unknown, // Beyond typical weight class ranges
             };
         }
+        public static List<string> AllClasses()
+        {
+            return new List<string>()
+            {
+                FlyWeight,
+                BantamWeight,
+                FeatherWeight,
+                LightWeight,
+                WelterWeight,
+                MiddleWeight,
+                LightHeavyWeight,
+                HeavyWeight,
+                WomenFlyWeight,
+                WomenStrawWeight,
+                WomenBantamWeight,
+                WomenFeatherweight
+            };
+        }
+
     }
 }
