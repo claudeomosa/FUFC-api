@@ -46,9 +46,9 @@ public class Fighter
     {
         get
         {
-            double totalInches = Height / 2.54; // Convert cm to inches
-            int feet = (int)(totalInches / 12);
-            int inches = (int)(totalInches % 12);
+            int totalInches = (int)Height;
+            int feet = totalInches / 12;
+            int inches = totalInches % 12;
             return $"{feet}'{inches}\"";
         }
     }
@@ -96,6 +96,8 @@ public class Fighter
     public SocialMedia? SocialMedia { get; set; }
 
     public Gym? Gym { get; set; }
+
+    public string FighterImagePath { get; set; }
 }
 public class SocialMedia
 {

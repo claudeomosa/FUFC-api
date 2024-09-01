@@ -29,51 +29,133 @@ public class UfcOfficialSpider(ILogger<UfcStatsSpider> logger, IConfiguration co
         var bouts = GetBouts();
     }
 
-    private List<Fighter> GetRankedFighters()
+    public List<Fighter> GetRankedFighters()
     {
         Uri rankingsUrl = new UriBuilder(BasePath) { Path = "/rankings" }.Uri;
 
-        var document = _web.Load(rankingsUrl.AbsoluteUri);
+        HtmlDocument rankingsDocument = _web.Load(rankingsUrl);
 
-        var rankedFightersLinks = document.QuerySelectorAll(".views-field.views-field-title");
+        List<HtmlNode> weightClassGrouping = rankingsDocument.QuerySelectorAll(".view-grouping")?.ToList() ?? new List<HtmlNode>();
 
-        var rankedFightersDictionary = new Dictionary<string, string>();
-
-        var rankedFighters = new List<Fighter>();
-
-        foreach (var element in rankedFightersLinks)
+        List<Fighter> fighters = new List<Fighter>();
+        if (weightClassGrouping.Count > 0)
         {
-            // Extract the InnerHtml string
-            string innerHtml = element.InnerHtml;
+            Dictionary<string, Dictionary<string, string>> rankingsPerWeightClassDictionary =
+                GetWeightClassPositionalRankings(weightClassGrouping);
+            foreach (var weightClassRankings in rankingsPerWeightClassDictionary.Values)
+            {
+                foreach (var fighterInfo in weightClassRankings)
+                {
+                    Uri fighterUrl = new UriBuilder(BasePath) { Path = fighterInfo.Value }.Uri;
+                    string fighterRank = char.IsLetterOrDigit(fighterInfo.Key[0]) || fighterInfo.Key[0] == 'C' ? fighterInfo.Key[0].ToString() : string.Empty;
+                    if (!string.IsNullOrEmpty(fighterRank))
+                    {
+                        Fighter fighter = GetFighterDetails(fighterRank, fighterUrl.AbsoluteUri);
+                        if (FighterServices.GetFighterByNameAndNicknameInWeightClass(dbContext, fighter.Name, fighter.NickName, fighter.WeightClass) == null)
+                        {
+                            fighters.Add(fighter);
+                            FighterServices.AddFighter(dbContext, fighter);
+                        }
+                    }
+                }
+            }
 
-            int nameStartIndex = innerHtml.IndexOf("\">", StringComparison.Ordinal) + 2;
-            int nameEndIndex = innerHtml.IndexOf("</a>", StringComparison.Ordinal);
-            string fighterName = innerHtml
-                .Substring(nameStartIndex, nameEndIndex - nameStartIndex)
-                .Trim()
-                .Replace(" ", "");
-
-            int hrefStartIndex = innerHtml.IndexOf("href=\"", StringComparison.Ordinal) + 6;
-            int hrefEndIndex = innerHtml.IndexOf("\"", hrefStartIndex, StringComparison.Ordinal);
-            string fighterPath = innerHtml.Substring(hrefStartIndex, hrefEndIndex - hrefStartIndex);
-
-            UriBuilder fighterUrl = new UriBuilder(BasePath) { Path = fighterPath };
-
-            // var fighterDocument = web.Load(fighterUrl.Uri.AbsoluteUri);
-
-            rankedFighters.Add(GetFighterDetails(fighterUrl.Uri.AbsoluteUri));
-            rankedFightersDictionary[fighterName] = fighterUrl.Uri.AbsoluteUri;
         }
 
-        return rankedFighters;
+        return fighters;
+    }
+    /// <summary>
+    /// Returns links of ranked fighters by weight class
+    /// </summary>
+    /// <param name="weightClassGroupings"></param>
+    /// <returns>
+    /// Dictionary: KEY: string weightClass, VAL: Dictionary: KEY: string rank, VAL: string fighterPath
+    /// </returns>
+    private Dictionary<string, Dictionary<string, string>> GetWeightClassPositionalRankings(
+        List<HtmlNode> weightClassGroupings)
+    {
+        Dictionary<string, Dictionary<string, string>> rankingsPerWeightClassDictionary =
+            new Dictionary<string, Dictionary<string, string>>();
+        foreach (var grouping in weightClassGroupings)
+        {
+            Dictionary<string, string> rankAndFighterDictionary = new Dictionary<string, string>();
+            string weightClass = "";
+
+            HtmlDocument groupingDocument = new HtmlDocument();
+
+            groupingDocument.LoadHtml(grouping.InnerHtml);
+
+            weightClass = groupingDocument.QuerySelector(".view-grouping-header").InnerText;
+
+            if (weightClass != "Men's Pound-for-Pound Top Rank")
+            {
+                string weightClassChampionPath = groupingDocument.DocumentNode
+                    .SelectSingleNode("//h5/a")?.GetAttributeValue("href", string.Empty) ?? string.Empty;
+
+                if (!string.IsNullOrEmpty(weightClassChampionPath))
+                {
+                    rankAndFighterDictionary.Add("C", weightClassChampionPath);
+                }
+
+                foreach (HtmlNode row in groupingDocument.DocumentNode.SelectNodes("//tr"))
+                {
+                    string rank =
+                        row.SelectSingleNode(".//td[contains(@class, 'views-field-weight-class-rank')]")?.InnerText
+                            .Trim() ?? string.Empty;
+                    string href =
+                        row.SelectSingleNode(".//td[contains(@class, 'views-field-title')]/a")
+                            ?.GetAttributeValue("href", string.Empty) ?? string.Empty;
+
+                    if (!string.IsNullOrEmpty(rank) && !string.IsNullOrEmpty(href))
+                    {
+                        if (rankAndFighterDictionary.ContainsKey(rank))
+                        {
+                            char suffix = '1';
+                            while (rankAndFighterDictionary.ContainsKey(rank + suffix))
+                            {
+                                suffix++;
+                            }
+                            rank = rank + '.' + suffix;
+                        }
+
+                        rankAndFighterDictionary.Add(rank, href);
+                    }
+                }
+                rankingsPerWeightClassDictionary.Add(weightClass, rankAndFighterDictionary);
+            }
+
+        }
+        return rankingsPerWeightClassDictionary;
     }
 
-    private Fighter GetFighterDetails(string fighterPath)
+    private Fighter GetFighterDetails(string rank, string fighterPath)
     {
         var fighterDocument = _web.Load(fighterPath);
 
         string fighterName =
             fighterDocument.QuerySelector(".hero-profile__name").InnerText ?? string.Empty;
+
+        string fighterNickname = fighterDocument.QuerySelector(".hero-profile__nickname")?.InnerText ?? string.Empty;
+
+        List<HtmlNode> fighterTagNodes = fighterDocument.QuerySelectorAll(".hero-profile__tag")?.ToList() ?? new List<HtmlNode>();
+
+        string fighterImage = fighterDocument.QuerySelector(".hero-profile__image")?.GetAttributeValue("src", string.Empty) ?? string.Empty;
+
+        List<string> fighterTags = new List<string>();
+
+        var fighterRank = 0;
+        if (rank != "C")
+        {
+            fighterRank = int.TryParse(rank, out fighterRank) ? fighterRank : 0;
+        }
+        else
+        {
+            fighterRank = -1;
+        }
+        foreach (var tagNode in fighterTagNodes)
+        {
+            fighterTags.Add(tagNode.InnerText);
+        }
 
         string fighterWeightClass =
             fighterDocument.QuerySelector(".hero-profile__division-title").InnerText
@@ -82,8 +164,35 @@ public class UfcOfficialSpider(ILogger<UfcStatsSpider> logger, IConfiguration co
         string baseRecordString =
             fighterDocument.QuerySelector(".hero-profile__division-body").InnerText ?? string.Empty;
 
-        var fighterSkillsStats = fighterDocument.QuerySelector(".stats-records");
+        // fighter stats
+        FighterRecord fighterRecord = ParseRecord(baseRecordString);
 
+        FighterSkillStats fighterSkillStats = new FighterSkillStats();
+        // core stats
+        Dictionary<string, string> statsDictionary = new Dictionary<string, string>();
+
+        List<HtmlNode> fighterCoreStatsNodes = fighterDocument.QuerySelectorAll(".athlete-stats__stat")?.ToList() ?? new List<HtmlNode>();
+
+        if (fighterCoreStatsNodes.Count > 0)
+        {
+            foreach (var statsNode in fighterCoreStatsNodes)
+            {
+                var numberNode = statsNode.SelectSingleNode(".//p[contains(@class, 'athlete-stats__stat-numb')]");
+                var textNode = statsNode.SelectSingleNode(".//p[contains(@class, 'athlete-stats__stat-text')]");
+
+                if (numberNode != null && textNode != null)
+                {
+                    string number = numberNode.InnerText.Trim();
+                    string text = textNode.InnerText.Trim();
+                    statsDictionary[text] = number;
+                }
+            }
+
+            int noContest = 0;
+            int winsBySubmission = 0;
+
+
+        }
         var bioFields = fighterDocument.QuerySelectorAll(".c-bio__field");
 
         var bioData = new Dictionary<string, string>();
@@ -105,23 +214,42 @@ public class UfcOfficialSpider(ILogger<UfcStatsSpider> logger, IConfiguration co
                 }
             }
         }
-        Gym fighterGym = new Gym() { Name = bioData.TryGetValue("Trains at", out string fighterGymName) ? fighterGymName : "", };
+
+        var fighterGymName = "";
+        fighterGymName = bioData.TryGetValue("Trains at", out fighterGymName) ? fighterGymName : string.Empty;
+
+        Gym? fighterGym = GymServices.GetGymByName(dbContext, fighterGymName);
+
+        if (fighterGym == null)
+        {
+            Gym newGym = new Gym()
+            {
+                Name = fighterGymName
+            };
+            GymServices.AddGym(dbContext, newGym);
+            fighterGym = newGym;
+        }
 
         Fighter fighter = new Fighter()
         {
-            Name = fighterName,
-            WeightClass = fighterWeightClass,
-            Record = ParseRecord(baseRecordString),
+            Name = WebUtility.HtmlDecode(fighterName),
+            NickName = WebUtility.HtmlDecode(fighterNickname).Replace("\"", ""),
+            WeightClass = WebUtility.HtmlDecode(fighterWeightClass.Replace("Division", "")).Trim(),
+            Record = fighterRecord,
+            Champion = fighterTags.Exists(tag => tag == "Title Holder"),
+            InterimChampion = fighterTags.Exists(tag => tag == "Interim Title Holder"),
             IsRanked = true,
             Active = true,
-            HomeCity = bioData.TryGetValue("Place of Birth", out string homeCity) ? homeCity : string.Empty,
+            Gender = WebUtility.HtmlDecode(fighterWeightClass.Split(" ")[0]) == "Women's" ? "female" : "male",
+            HomeCity = bioData.TryGetValue("Place of Birth", out string homeCity) ? WebUtility.HtmlDecode(homeCity) : string.Empty,
             PredominantStyle = bioData.TryGetValue("Fighting style", out string predominantStyle) ? predominantStyle : String.Empty,
             Height = Convert.ToDouble(bioData.TryGetValue("Height", out string height) ? height : string.Empty),
             Weight = (int)decimal.Parse(bioData.TryGetValue("Weight", out string weight) ? weight : string.Empty),
-            Rank = 1,
+            Rank = fighterRank,
             Reach = Convert.ToDouble(bioData.TryGetValue("Reach", out string reach) ? reach : string.Empty),
             Age = int.Parse(bioData.TryGetValue("Age", out string age) ? age : string.Empty),
-            Gym = fighterGym
+            Gym = fighterGym,
+            FighterImagePath = fighterImage
         };
 
         return fighter;

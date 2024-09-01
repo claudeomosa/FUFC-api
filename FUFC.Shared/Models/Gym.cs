@@ -10,13 +10,13 @@ public class Gym
 
     public Gym()
     {
-        Id = new Ulid();
+        Id = Ulid.NewUlid();
     }
 
-    [MaxLength(50)]
+    [MaxLength(150)]
     public string Name { get; init; } = string.Empty;
 
-    [MaxLength(50)]
+    [MaxLength(150)]
     public string Location { get; init; } = string.Empty;
 
     public List<Fighter> Fighters { get; init; }
