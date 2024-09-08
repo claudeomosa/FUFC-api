@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.RegularExpressions;
 using FUFC.Scrapers.Common;
 using FUFC.Shared.Data;
@@ -23,10 +24,7 @@ public class UfcOfficialSpider(ILogger<UfcStatsSpider> logger, IConfiguration co
         logger.LogInformation("{name} is Crawling", Name);
 
         // Get Ranked Fighters
-        //var rankedFighters = GetRankedFighters();
-
-        // Get Events
-        var bouts = GetBouts();
+        GetRankedFighters();
     }
 
     public List<Fighter> GetRankedFighters()
@@ -47,7 +45,7 @@ public class UfcOfficialSpider(ILogger<UfcStatsSpider> logger, IConfiguration co
                 foreach (var fighterInfo in weightClassRankings)
                 {
                     Uri fighterUrl = new UriBuilder(BasePath) { Path = fighterInfo.Value }.Uri;
-                    string fighterRank = char.IsLetterOrDigit(fighterInfo.Key[0]) || fighterInfo.Key[0] == 'C' ? fighterInfo.Key[0].ToString() : string.Empty;
+                    string fighterRank = char.IsLetterOrDigit(fighterInfo.Key[0]) || fighterInfo.Key[0] == 'C' ? fighterInfo.Key.Split(".")[0] : string.Empty;
                     if (!string.IsNullOrEmpty(fighterRank))
                     {
                         Fighter fighter = GetFighterDetails(fighterRank, fighterUrl.AbsoluteUri);
@@ -133,7 +131,7 @@ public class UfcOfficialSpider(ILogger<UfcStatsSpider> logger, IConfiguration co
         var fighterDocument = _web.Load(fighterPath);
 
         string fighterName =
-            fighterDocument.QuerySelector(".hero-profile__name").InnerText ?? string.Empty;
+            fighterDocument.QuerySelector(".hero-profile__name")?.InnerText ?? string.Empty;
 
         string fighterNickname = fighterDocument.QuerySelector(".hero-profile__nickname")?.InnerText ?? string.Empty;
 
@@ -218,9 +216,13 @@ public class UfcOfficialSpider(ILogger<UfcStatsSpider> logger, IConfiguration co
         var fighterGymName = "";
         fighterGymName = bioData.TryGetValue("Trains at", out fighterGymName) ? fighterGymName : string.Empty;
 
-        Gym? fighterGym = GymServices.GetGymByName(dbContext, fighterGymName);
+        Gym? fighterGym = null;
+        if (!string.IsNullOrEmpty(fighterGymName))
+        {
+            fighterGym = GymServices.GetGymByName(dbContext, fighterGymName);
+        }
 
-        if (fighterGym == null)
+        if (fighterGym == null && !string.IsNullOrEmpty(fighterGymName))
         {
             Gym newGym = new Gym()
             {
@@ -229,7 +231,10 @@ public class UfcOfficialSpider(ILogger<UfcStatsSpider> logger, IConfiguration co
             GymServices.AddGym(dbContext, newGym);
             fighterGym = newGym;
         }
-
+        else
+        {
+            fighterGym = null;
+        }
         Fighter fighter = new Fighter()
         {
             Name = WebUtility.HtmlDecode(fighterName),
@@ -243,16 +248,25 @@ public class UfcOfficialSpider(ILogger<UfcStatsSpider> logger, IConfiguration co
             Gender = WebUtility.HtmlDecode(fighterWeightClass.Split(" ")[0]) == "Women's" ? "female" : "male",
             HomeCity = bioData.TryGetValue("Place of Birth", out string homeCity) ? WebUtility.HtmlDecode(homeCity) : string.Empty,
             PredominantStyle = bioData.TryGetValue("Fighting style", out string predominantStyle) ? predominantStyle : String.Empty,
-            Height = Convert.ToDouble(bioData.TryGetValue("Height", out string height) ? height : string.Empty),
-            Weight = (int)decimal.Parse(bioData.TryGetValue("Weight", out string weight) ? weight : string.Empty),
+            Height = TryParseDouble(bioData, "Height"),
+            Weight = TryParseInt(bioData, "Weight"),
             Rank = fighterRank,
-            Reach = Convert.ToDouble(bioData.TryGetValue("Reach", out string reach) ? reach : string.Empty),
-            Age = int.Parse(bioData.TryGetValue("Age", out string age) ? age : string.Empty),
+            Reach = TryParseDouble(bioData, "Reach"),
+            Age = TryParseInt(bioData, "Age"),
             Gym = fighterGym,
             FighterImagePath = fighterImage
         };
 
         return fighter;
+    }
+    private static double TryParseDouble(Dictionary<string, string> data, string key)
+    {
+        return data.TryGetValue(key, out string value) && double.TryParse(value, out double result) ? result : 0.0;
+    }
+
+    private static int TryParseInt(Dictionary<string, string> data, string key)
+    {
+        return data.TryGetValue(key, out string value) && int.TryParse(value.Split(".")[0], out int result) ? result : 0;
     }
 
     private Dictionary<string, int> ParseRecordToDictionary(string record)
@@ -303,14 +317,12 @@ public class UfcOfficialSpider(ILogger<UfcStatsSpider> logger, IConfiguration co
         {
             if (_event.IsPpv)
             {
-                string pathEndpoint = "/event/" +  _event.Name.Split(":")[0].Replace(" ", "-").ToLower();
+                string pathEndpoint = "/event/" + _event.Name.Split(":")[0].Replace(" ", "-").ToLower();
                 Uri eventUfcUri = new UriBuilder(BasePath) { Path = pathEndpoint }.Uri;
 
                 List<Bout> scrapedBouts = GetEventBouts(eventUfcUri);
             }
-
         }
-
         return new List<Bout>();
     }
 
@@ -319,10 +331,7 @@ public class UfcOfficialSpider(ILogger<UfcStatsSpider> logger, IConfiguration co
         HtmlDocument doc = _web.Load(eventUfcUri);
 
         var bouts = doc.QuerySelectorAll(".c-listing-fight__content");
-        
-        
-        
-        
+
         return new List<Bout>();
     }
 
