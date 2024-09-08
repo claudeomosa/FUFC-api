@@ -55,6 +55,10 @@ namespace FUFC.Shared.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("WeightClass")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BlueCornerId");
@@ -260,6 +264,11 @@ namespace FUFC.Shared.Migrations
                             b1.Property<int>("Round")
                                 .HasColumnType("integer")
                                 .HasAnnotation("Relational:JsonPropertyName", "round");
+
+                            b1.Property<string>("Time")
+                                .IsRequired()
+                                .HasColumnType("text")
+                                .HasAnnotation("Relational:JsonPropertyName", "time");
 
                             b1.Property<string>("Winner")
                                 .IsRequired()

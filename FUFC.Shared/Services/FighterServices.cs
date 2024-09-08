@@ -1,8 +1,5 @@
-using FUFC.Shared.Common;
 using FUFC.Shared.Data;
 using FUFC.Shared.Models;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 
 namespace FUFC.Shared.Services;
 
