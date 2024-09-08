@@ -35,14 +35,14 @@ var host = Host.CreateDefaultBuilder()
     })
     .UseSerilog()
     .Build();
-/*
+
 if (args.Length == 0 || string.IsNullOrEmpty(args[0]))
 {
     Console.WriteLine("Error: SpiderName is required.");
     Environment.Exit(1);
 }
-*/
-string spiderName = "UFC Stats Spider";
+
+string spiderName = args[0];
 
 if (spiderName == "UFC Stats Spider")
 {
