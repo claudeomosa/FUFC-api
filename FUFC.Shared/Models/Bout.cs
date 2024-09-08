@@ -10,7 +10,7 @@ public class Bout
     public Ulid Id { get; set; }
     public Bout()
     {
-        Id = Ulid.NewUlid();
+        Id = Ulid.NewUlid(  );
     }
     [Required]
     public Event Event { get; set; }
@@ -18,6 +18,8 @@ public class Bout
     public Fighter RedCorner { get; set; }
     [Required]
     public Fighter BlueCorner { get; set; }
+    [Required]
+    public string WeightClass { get; set; }
     public bool IsForTitle { get; set; }
     public bool IsMainEvent { get; set; }
     public bool IsPrelim { get; set; }
@@ -34,4 +36,6 @@ public class BoutResult
     [JsonPropertyName("winner")] public string Winner { get; set; }
     [JsonPropertyName("round")] public int Round { get; set; }
     [JsonPropertyName("method")] public string Method { get; set; }
+    
+    [JsonPropertyName("time")] public string Time { get; set; }
 }
