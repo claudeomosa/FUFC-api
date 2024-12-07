@@ -15,7 +15,7 @@ Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Build())
     .Enrich.FromLogContext()
     .WriteTo.Console()
-    .WriteTo.File($"logs/log-{DateTime.Now:yyyy-MM-dd}.txt", rollingInterval: RollingInterval.Day)
+    .WriteTo.File($"logs/scrapers-logs/log-{DateTime.Now:yyyy-MM-dd}.txt", rollingInterval: RollingInterval.Day)
     .CreateLogger();
 
 var configuration = new ConfigurationBuilder()
